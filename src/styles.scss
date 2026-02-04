@@ -1,0 +1,108 @@
+@use '@angular/material' as mat;
+@include mat.core();
+
+// font
+@import 'scss/fonts/tabler-icons.min.css';
+
+// theme setup
+@import './app/@theme/styles/theme-palette-colors.scss';
+@import './app/@theme/styles/theme.scss';
+@include mat.all-component-typographies(theme-typography("'Inter var', sans-serif")); // theme typography
+
+// default theme
+@include mat.all-component-themes(get-light-theme($blue-theme));
+
+// generate non material classes based on theme
+.blue-theme {
+  @include generate-theme-classes($blue-theme); // generate non material classes based on theme
+}
+
+// common
+@import './scss/generic';
+@import './scss/common';
+@import './scss/variables';
+
+// theme layouts
+@import './app/@theme/styles/layouts/menu';
+@import './app/@theme/styles/pages/dashboard.scss';
+
+// grid
+@import './app/@theme/styles/grid';
+
+// SweetAlert2 custom styles
+.swal-popup-custom {
+  font-family: 'Inter var', sans-serif;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12) !important;
+  padding: 24px 28px 20px !important;
+  max-width: 380px !important;
+  width: 100% !important;
+}
+
+.swal-title-custom {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #1a1a2e !important;
+  margin-bottom: 4px !important;
+  padding: 0 !important;
+}
+
+.swal-text-custom {
+  font-size: 13px !important;
+  color: #6c757d !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1.5;
+}
+
+.swal-icon-custom {
+  width: 36px !important;
+  height: 36px !important;
+  margin: 0 0 12px !important;
+
+  .swal2-icon-content {
+    font-size: 20px !important;
+  }
+}
+
+.swal-btn-confirm,
+.swal-btn-cancel {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 8px 18px !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.swal-btn-confirm {
+  background: #4680FF !important;
+  color: #fff !important;
+
+  &:hover {
+    background: #3b6ee8 !important;
+  }
+}
+
+.swal-btn-cancel {
+  background: #f3f4f6 !important;
+  color: #4b5563 !important;
+
+  &:hover {
+    background: #e5e7eb !important;
+  }
+}
+
+// Swal close button
+.swal-popup-custom .swal2-close {
+  font-size: 18px !important;
+  color: #9ca3af !important;
+  top: 10px !important;
+  right: 12px !important;
+
+  &:hover {
+    color: #6b7280 !important;
+  }
+}

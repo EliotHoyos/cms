@@ -1,0 +1,467 @@
+<div class="instructors-page">
+  <!-- Header de la página -->
+  <div class="page-header" #pageTop>
+    <div class="header-left">
+      <h1>Instructores</h1>
+      <p>Gestiona todos tus instructores registrados</p>
+    </div>
+  </div>
+
+  <!-- Contenedor principal: Tabla + Formulario lado a lado -->
+  <div class="content-wrapper" [class.form-visible]="showPanel">
+    <!-- Sección de la tabla -->
+    <div class="table-section">
+      <div class="table-card">
+        <div class="table-header">
+          <div class="search-box">
+            <i class="ti ti-search"></i>
+            <input
+              type="text"
+              placeholder="Buscar por nombre, email o especialidad..."
+              (input)="onSearch($event)">
+          </div>
+          <div class="table-actions">
+            <span class="total-badge" *ngIf="!loading && instructors.length > 0">
+              <i class="ti ti-users"></i>
+              {{ filteredInstructors.length }} de {{ instructors.length }}
+            </span>
+            <button class="btn-primary btn-new" (click)="openCreatePanel()">
+              <i class="ti ti-plus"></i>
+              <span>Nuevo</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="loading-state" *ngIf="loading">
+          <div class="loader"></div>
+          <p>Cargando instructores...</p>
+        </div>
+
+        <div class="error-state" *ngIf="error">
+          <div class="error-icon">
+            <i class="ti ti-alert-triangle"></i>
+          </div>
+          <h3>Error al cargar</h3>
+          <p>{{ error }}</p>
+          <button class="btn-primary" (click)="loadInstructors()">
+            <i class="ti ti-refresh"></i> Reintentar
+          </button>
+        </div>
+
+        <div class="empty-state" *ngIf="!loading && !error && instructors.length === 0">
+          <div class="empty-icon">
+            <i class="ti ti-users-group"></i>
+          </div>
+          <h3>Sin instructores</h3>
+          <p>Aún no tienes instructores registrados</p>
+          <button class="btn-primary" (click)="openCreatePanel()">
+            <i class="ti ti-plus"></i> Agregar Primer Instructor
+          </button>
+        </div>
+
+        <div class="table-wrapper" *ngIf="!loading && !error && instructors.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-photo">Foto</th>
+                <th class="th-instructor">Instructor</th>
+                <th>Especialidad</th>
+                <th>Cinturón</th>
+                <th class="th-bio">Biografía</th>
+                <th class="th-contact">Teléfono</th>
+                <th>Experiencia</th>
+                <th class="th-actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let instructor of filteredInstructors" [class.selected]="selectedInstructor?.id === instructor.id">
+                <td>
+                  <div class="photo-cell">
+                    <div class="avatar">
+                      <img *ngIf="instructor.photo"
+                           [src]="'http://localhost:8080/uploads/' + instructor.photo"
+                           [alt]="instructor.name"
+                           (error)="onImageError($event)">
+                      <span *ngIf="!instructor.photo" class="avatar-text">{{ instructor.name.charAt(0) }}{{ instructor.last_name.charAt(0) }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="instructor-cell">
+                    <span class="name">{{ instructor.name }} {{ instructor.last_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="specialty-cell">
+                    <span class="specialty">{{ instructor.specialty }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="belt-cell">
+                    <span class="belt-badge">{{ instructor.belt_level }}</span>
+                  </div>
+                </td>
+                <td class="td-bio">
+                  <div class="bio-cell">
+                    <span>{{ instructor.bio || '—' }}</span>
+                  </div>
+                </td>
+                <td class="td-contact">
+                  <div class="contact-cell">
+                    <span class="phone">
+                      <i class="ti ti-phone"></i>
+                      {{ instructor.phone }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div class="experience-cell">
+                    <span class="experience-badge">{{ instructor.experience_years }} años</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn-action view" title="Ver detalles" (click)="openViewPanel(instructor)">
+                      <i class="ti ti-eye"></i>
+                    </button>
+                    <button class="btn-action edit" title="Editar" (click)="openEditPanel(instructor)">
+                      <i class="ti ti-pencil"></i>
+                    </button>
+                    <button
+                      class="btn-action publish"
+                      [class.published]="instructor.is_published"
+                      [title]="instructor.is_published ? 'Quitar de la web' : 'Publicar en la web'"
+                      (click)="togglePublish(instructor, $event)">
+                      <i class="ti" [class.ti-globe]="instructor.is_published" [class.ti-globe-off]="!instructor.is_published"></i>
+                      <span class="publish-dot" [class.active]="instructor.is_published" [class.inactive]="!instructor.is_published"></span>
+                    </button>
+                    <button class="btn-action toggle-status"
+                      [class.is-active]="instructor.status === 'active'"
+                      [class.is-inactive]="instructor.status === 'inactive'"
+                      [title]="instructor.status === 'active' ? 'Desactivar' : 'Activar'"
+                      (click)="toggleStatus(instructor, $event)">
+                      <i class="ti" [class.ti-circle-check]="instructor.status === 'active'" [class.ti-circle-x]="instructor.status === 'inactive'"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="no-results" *ngIf="filteredInstructors.length === 0 && searchTerm">
+            <i class="ti ti-search-off"></i>
+            <p>No se encontraron resultados para "{{ searchTerm }}"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección del formulario (lado derecho) -->
+    <div class="form-section" [class.active]="showPanel">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>{{ getPanelTitle() }}</h2>
+          <button class="btn-close" (click)="closePanel()" title="Cerrar">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+
+        <div class="form-content">
+          <!-- Vista de detalles -->
+          <div class="instructor-view" *ngIf="panelMode === 'view' && selectedInstructor">
+            <div class="view-photo">
+              <img *ngIf="selectedInstructor.photo"
+                   [src]="'http://localhost:8080/uploads/' + selectedInstructor.photo"
+                   [alt]="selectedInstructor.name">
+              <div *ngIf="!selectedInstructor.photo" class="photo-placeholder-large">
+                <span>{{ selectedInstructor.name.charAt(0) }}{{ selectedInstructor.last_name.charAt(0) }}</span>
+              </div>
+            </div>
+
+            <div class="view-name">
+              <h3>{{ selectedInstructor.name }} {{ selectedInstructor.last_name }}</h3>
+              <span class="status-badge" [class]="getStatusClass(selectedInstructor.status)">
+                {{ getStatusLabel(selectedInstructor.status) }}
+              </span>
+            </div>
+
+            <div class="view-details">
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-karate"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Especialidad</span>
+                  <span class="detail-value">{{ selectedInstructor.specialty }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-award"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Cinturón</span>
+                  <span class="detail-value">{{ selectedInstructor.belt_level }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-mail"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Email</span>
+                  <span class="detail-value">{{ selectedInstructor.email }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-phone"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Teléfono</span>
+                  <span class="detail-value">{{ selectedInstructor.phone }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-clock"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Experiencia</span>
+                  <span class="detail-value">{{ selectedInstructor.experience_years }} años</span>
+                </div>
+              </div>
+
+              <div class="detail-item" *ngIf="selectedInstructor.bio">
+                <div class="detail-icon">
+                  <i class="ti ti-file-text"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Biografía</span>
+                  <span class="detail-value">{{ selectedInstructor.bio }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item" *ngIf="selectedInstructor.certifications">
+                <div class="detail-icon">
+                  <i class="ti ti-certificate"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Certificaciones</span>
+                  <span class="detail-value">{{ selectedInstructor.certifications }}</span>
+                </div>
+              </div>
+
+              <div class="social-media" *ngIf="selectedInstructor.social_media_facebook || selectedInstructor.social_media_instagram || selectedInstructor.social_media_twitter">
+                <div class="detail-label">Redes Sociales</div>
+                <div class="social-links">
+                  <a *ngIf="selectedInstructor.social_media_facebook" [href]="selectedInstructor.social_media_facebook" target="_blank" class="social-link facebook">
+                    <i class="ti ti-brand-facebook"></i>
+                  </a>
+                  <a *ngIf="selectedInstructor.social_media_instagram" [href]="selectedInstructor.social_media_instagram" target="_blank" class="social-link instagram">
+                    <i class="ti ti-brand-instagram"></i>
+                  </a>
+                  <a *ngIf="selectedInstructor.social_media_twitter" [href]="selectedInstructor.social_media_twitter" target="_blank" class="social-link x">
+                    <span class="x-logo">X</span>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario -->
+          <form *ngIf="panelMode === 'create' || panelMode === 'edit'" [formGroup]="instructorForm" (ngSubmit)="onSubmit()" class="instructor-form">
+            <div class="alert alert-error" *ngIf="formError">
+              <i class="ti ti-alert-circle"></i>
+              {{ formError }}
+            </div>
+
+            <div class="alert alert-success" *ngIf="formSuccess">
+              <i class="ti ti-check"></i>
+              {{ formSuccess }}
+            </div>
+
+            <!-- Foto -->
+            <div class="form-photo">
+              <div class="photo-wrapper" (click)="photoInput.click()">
+                <img *ngIf="previewUrl" [src]="previewUrl" alt="Preview">
+                <div *ngIf="previewUrl" class="photo-edit">
+                  <i class="ti ti-camera"></i>
+                </div>
+                <div *ngIf="!previewUrl" class="photo-empty">
+                  <i class="ti ti-camera-plus"></i>
+                  <span>Foto</span>
+                </div>
+              </div>
+              <input #photoInput type="file" accept="image/*" (change)="onFileSelected($event)" hidden>
+            </div>
+
+            <div class="form-grid">
+              <!-- Nombre -->
+              <div class="form-group">
+                <label>Nombre</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-user"></i>
+                  <input type="text" formControlName="name" placeholder="Nombre">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('name')?.hasError('required') && instructorForm.get('name')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Apellido -->
+              <div class="form-group">
+                <label>Apellido</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-user"></i>
+                  <input type="text" formControlName="last_name" placeholder="Apellido">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('last_name')?.hasError('required') && instructorForm.get('last_name')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Especialidad -->
+              <div class="form-group">
+                <label>Especialidad</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-karate"></i>
+                  <input type="text" formControlName="specialty" placeholder="Ej: Karate, Taekwondo">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('specialty')?.hasError('required') && instructorForm.get('specialty')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Cinturón -->
+              <div class="form-group">
+                <label>Nivel de Cinturón</label>
+                <div class="input-wrapper select-wrapper">
+                  <i class="ti ti-award"></i>
+                  <select formControlName="belt_level">
+                    <option value="">Seleccione</option>
+                    <option *ngFor="let belt of beltLevels" [value]="belt">{{ belt }}</option>
+                  </select>
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('belt_level')?.invalid && instructorForm.get('belt_level')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Email -->
+              <div class="form-group full-width">
+                <label>Email</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-mail"></i>
+                  <input type="email" formControlName="email" placeholder="correo@ejemplo.com">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('email')?.hasError('required') && instructorForm.get('email')?.touched">
+                  Requerido
+                </span>
+                <span class="error-text" *ngIf="instructorForm.get('email')?.hasError('email') && instructorForm.get('email')?.touched">
+                  Email inválido
+                </span>
+              </div>
+
+              <!-- Teléfono -->
+              <div class="form-group">
+                <label>Teléfono</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-phone"></i>
+                  <input type="text" formControlName="phone" placeholder="987654321">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('phone')?.hasError('required') && instructorForm.get('phone')?.touched">
+                  Requerido
+                </span>
+                <span class="error-text" *ngIf="instructorForm.get('phone')?.hasError('pattern') && instructorForm.get('phone')?.touched">
+                  9 dígitos comenzando con 9
+                </span>
+              </div>
+
+              <!-- Años de experiencia -->
+              <div class="form-group">
+                <label>Años de Experiencia</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-clock"></i>
+                  <input type="number" formControlName="experience_years" placeholder="0" min="0">
+                </div>
+                <span class="error-text" *ngIf="instructorForm.get('experience_years')?.hasError('required') && instructorForm.get('experience_years')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Estado -->
+              <div class="form-group full-width">
+                <label>Estado</label>
+                <div class="input-wrapper select-wrapper">
+                  <i class="ti ti-flag"></i>
+                  <select formControlName="status">
+                    <option *ngFor="let status of statusOptions" [value]="status.value">{{ status.label }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Biografía -->
+              <div class="form-group full-width">
+                <label>Biografía (Opcional)</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-file-text"></i>
+                  <textarea formControlName="bio" placeholder="Breve descripción del instructor..." rows="3"></textarea>
+                </div>
+              </div>
+
+              <!-- Certificaciones -->
+              <div class="form-group full-width">
+                <label>Certificaciones (Opcional)</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-certificate"></i>
+                  <input type="text" formControlName="certifications" placeholder="Certificaciones y títulos">
+                </div>
+              </div>
+
+              <!-- Redes sociales -->
+              <div class="form-group full-width">
+                <label>Facebook (Opcional)</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-brand-facebook"></i>
+                  <input type="text" formControlName="social_media_facebook" placeholder="https://facebook.com/...">
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label>Instagram (Opcional)</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-brand-instagram"></i>
+                  <input type="text" formControlName="social_media_instagram" placeholder="https://instagram.com/...">
+                </div>
+              </div>
+
+              <div class="form-group full-width">
+                <label>X (Opcional)</label>
+                <div class="input-wrapper">
+                  <span class="x-logo input-x-logo">X</span>
+                  <input type="text" formControlName="social_media_twitter" placeholder="https://x.com/...">
+                </div>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" (click)="closePanel()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary" [disabled]="formLoading">
+                <div class="btn-loader" *ngIf="formLoading"></div>
+                <i class="ti ti-device-floppy"></i>
+                {{ panelMode === 'edit' ? 'Actualizar' : 'Guardar' }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

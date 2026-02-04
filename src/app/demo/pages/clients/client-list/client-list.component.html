@@ -1,0 +1,386 @@
+<div class="clients-page">
+  <!-- Header de la página -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1>Clientes</h1>
+      <p>Gestiona todos tus clientes registrados</p>
+    </div>
+  </div>
+
+  <!-- Contenedor principal: Tabla + Formulario lado a lado -->
+  <div class="content-wrapper" [class.form-visible]="showPanel">
+    <!-- Sección de la tabla -->
+    <div class="table-section">
+      <div class="table-card">
+        <div class="table-header">
+          <div class="search-box">
+            <i class="ti ti-search"></i>
+            <input
+              type="text"
+              placeholder="Buscar por nombre, email o documento..."
+              (input)="onSearch($event)">
+          </div>
+          <div class="table-actions">
+            <span class="total-badge" *ngIf="!loading && clients.length > 0">
+              <i class="ti ti-users"></i>
+              {{ filteredClients.length }} de {{ clients.length }}
+            </span>
+            <button class="btn-primary btn-new" (click)="openCreatePanel()">
+              <i class="ti ti-plus"></i>
+              <span>Nuevo</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="loading-state" *ngIf="loading">
+          <div class="loader"></div>
+          <p>Cargando clientes...</p>
+        </div>
+
+        <div class="error-state" *ngIf="error">
+          <div class="error-icon">
+            <i class="ti ti-alert-triangle"></i>
+          </div>
+          <h3>Error al cargar</h3>
+          <p>{{ error }}</p>
+          <button class="btn-primary" (click)="loadClients()">
+            <i class="ti ti-refresh"></i> Reintentar
+          </button>
+        </div>
+
+        <div class="empty-state" *ngIf="!loading && !error && clients.length === 0">
+          <div class="empty-icon">
+            <i class="ti ti-users-group"></i>
+          </div>
+          <h3>Sin clientes</h3>
+          <p>Aún no tienes clientes registrados</p>
+          <button class="btn-primary" (click)="openCreatePanel()">
+            <i class="ti ti-plus"></i> Agregar Primer Cliente
+          </button>
+        </div>
+
+        <div class="table-wrapper" *ngIf="!loading && !error && clients.length > 0">
+          <table>
+            <thead>
+              <tr>
+                <th class="th-photo">Foto</th>
+                <th>Cliente</th>
+                <th>Documento</th>
+                <th class="th-email">Email</th>
+                <th class="th-contact">Contacto</th>
+                <th>Edad</th>
+                <th class="th-actions">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let client of filteredClients" [class.selected]="selectedClient?.id === client.id">
+                <td>
+                  <div class="photo-cell">
+                    <div class="avatar">
+                      <img *ngIf="client.photo"
+                           [src]="'http://localhost:8080/uploads/' + client.photo"
+                           [alt]="client.name"
+                           (error)="onImageError($event)">
+                      <span *ngIf="!client.photo" class="avatar-text">{{ client.name.charAt(0) }}{{ client.last_name.charAt(0) }}</span>
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div class="client-cell">
+                    <span class="name">{{ client.name }} {{ client.last_name }}</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="document-cell">
+                    <span class="doc-type">{{ client.document_type }}</span>
+                    <span class="doc-number">{{ client.document }}</span>
+                  </div>
+                </td>
+                <td class="td-email">
+                  <div class="email-cell">
+                    <i class="ti ti-mail"></i>
+                    <span>{{ client.email }}</span>
+                  </div>
+                </td>
+                <td class="td-contact">
+                  <div class="contact-cell">
+                    <span class="phone">
+                      <i class="ti ti-phone"></i>
+                      {{ client.cellphome }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div class="age-cell">
+                    <span class="birthday">{{ client.birthday }}</span>
+                    <span class="age-badge">{{ calculateAge(client.birthday) }} años</span>
+                  </div>
+                </td>
+                <td>
+                  <div class="actions-cell">
+                    <button class="btn-action view" title="Ver detalles" (click)="openViewPanel(client)">
+                      <i class="ti ti-eye"></i>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="no-results" *ngIf="filteredClients.length === 0 && searchTerm">
+            <i class="ti ti-search-off"></i>
+            <p>No se encontraron resultados para "{{ searchTerm }}"</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sección del formulario (lado derecho) -->
+    <div class="form-section" [class.active]="showPanel">
+      <div class="form-card">
+        <div class="form-header">
+          <h2>{{ getPanelTitle() }}</h2>
+          <button class="btn-close" (click)="closePanel()" title="Cerrar">
+            <i class="ti ti-x"></i>
+          </button>
+        </div>
+
+        <div class="form-content">
+          <!-- Vista de detalles -->
+          <div class="client-view" *ngIf="panelMode === 'view' && selectedClient">
+            <div class="view-photo">
+              <img *ngIf="selectedClient.photo"
+                   [src]="'http://localhost:8080/uploads/' + selectedClient.photo"
+                   [alt]="selectedClient.name">
+              <div *ngIf="!selectedClient.photo" class="photo-placeholder-large">
+                <span>{{ selectedClient.name.charAt(0) }}{{ selectedClient.last_name.charAt(0) }}</span>
+              </div>
+            </div>
+
+            <div class="view-name">
+              <h3>{{ selectedClient.name }} {{ selectedClient.last_name }}</h3>
+              <span class="gender-badge" [class]="selectedClient.gender.toLowerCase()">
+                {{ selectedClient.gender }}
+              </span>
+            </div>
+
+            <div class="view-details">
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-id"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Documento</span>
+                  <span class="detail-value">{{ selectedClient.document_type }} {{ selectedClient.document }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-mail"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Email</span>
+                  <span class="detail-value">{{ selectedClient.email }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-phone"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Celular</span>
+                  <span class="detail-value">{{ selectedClient.cellphome }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-map-pin"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Dirección</span>
+                  <span class="detail-value">{{ selectedClient.address }}</span>
+                </div>
+              </div>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <i class="ti ti-cake"></i>
+                </div>
+                <div class="detail-info">
+                  <span class="detail-label">Fecha de nacimiento</span>
+                  <span class="detail-value">{{ selectedClient.birthday }} ({{ calculateAge(selectedClient.birthday) }} años)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Formulario -->
+          <form *ngIf="panelMode === 'create'" [formGroup]="clientForm" (ngSubmit)="onSubmit()" class="client-form">
+            <div class="alert alert-error" *ngIf="formError">
+              <i class="ti ti-alert-circle"></i>
+              {{ formError }}
+            </div>
+
+            <div class="alert alert-success" *ngIf="formSuccess">
+              <i class="ti ti-check"></i>
+              {{ formSuccess }}
+            </div>
+
+            <!-- Foto -->
+            <div class="form-photo">
+              <div class="photo-wrapper" (click)="photoInput.click()">
+                <img *ngIf="previewUrl" [src]="previewUrl" alt="Preview">
+                <div *ngIf="previewUrl" class="photo-edit">
+                  <i class="ti ti-camera"></i>
+                </div>
+                <div *ngIf="!previewUrl" class="photo-empty">
+                  <i class="ti ti-camera-plus"></i>
+                  <span>Foto</span>
+                </div>
+              </div>
+              <input #photoInput type="file" accept="image/*" (change)="onFileSelected($event)" hidden>
+            </div>
+
+            <div class="form-grid">
+              <!-- Nombre -->
+              <div class="form-group">
+                <label>Nombre</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-user"></i>
+                  <input type="text" formControlName="name" placeholder="Nombre">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('name')?.hasError('required') && clientForm.get('name')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Apellido -->
+              <div class="form-group">
+                <label>Apellido</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-user"></i>
+                  <input type="text" formControlName="last_name" placeholder="Apellido">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('last_name')?.hasError('required') && clientForm.get('last_name')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Tipo de documento -->
+              <div class="form-group">
+                <label>Tipo Doc.</label>
+                <div class="input-wrapper select-wrapper">
+                  <i class="ti ti-id"></i>
+                  <select formControlName="document_type">
+                    <option *ngFor="let type of documentTypes" [value]="type">{{ type }}</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Número de documento -->
+              <div class="form-group">
+                <label>N° Documento</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-hash"></i>
+                  <input type="text" formControlName="document" placeholder="Documento">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('document')?.hasError('required') && clientForm.get('document')?.touched">
+                  Requerido
+                </span>
+                <span class="error-text" *ngIf="clientForm.get('document')?.hasError('pattern') && clientForm.get('document')?.touched && clientForm.get('document_type')?.value === 'DNI'">
+                  8 dígitos
+                </span>
+                <span class="error-text" *ngIf="clientForm.get('document')?.hasError('pattern') && clientForm.get('document')?.touched && clientForm.get('document_type')?.value !== 'DNI'">
+                  11 dígitos
+                </span>
+              </div>
+
+              <!-- Email -->
+              <div class="form-group full-width">
+                <label>Email</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-mail"></i>
+                  <input type="email" formControlName="email" placeholder="correo@ejemplo.com">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('email')?.hasError('required') && clientForm.get('email')?.touched">
+                  Requerido
+                </span>
+                <span class="error-text" *ngIf="clientForm.get('email')?.hasError('email') && clientForm.get('email')?.touched">
+                  Email inválido
+                </span>
+              </div>
+
+              <!-- Celular -->
+              <div class="form-group">
+                <label>Celular</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-phone"></i>
+                  <input type="text" formControlName="cellphome" placeholder="987654321">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('cellphome')?.hasError('required') && clientForm.get('cellphome')?.touched">
+                  Requerido
+                </span>
+                <span class="error-text" *ngIf="clientForm.get('cellphome')?.hasError('pattern') && clientForm.get('cellphome')?.touched">
+                  9 dígitos comenzando con 9
+                </span>
+              </div>
+
+              <!-- Género -->
+              <div class="form-group">
+                <label>Género</label>
+                <div class="input-wrapper select-wrapper">
+                  <i class="ti ti-gender-bigender"></i>
+                  <select formControlName="gender">
+                    <option value="">Seleccione</option>
+                    <option *ngFor="let g of genders" [value]="g">{{ g }}</option>
+                  </select>
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('gender')?.invalid && clientForm.get('gender')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Dirección -->
+              <div class="form-group full-width">
+                <label>Dirección</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-map-pin"></i>
+                  <input type="text" formControlName="address" placeholder="Dirección">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('address')?.hasError('required') && clientForm.get('address')?.touched">
+                  Requerido
+                </span>
+              </div>
+
+              <!-- Fecha de nacimiento -->
+              <div class="form-group full-width">
+                <label>Fecha de Nacimiento</label>
+                <div class="input-wrapper">
+                  <i class="ti ti-calendar"></i>
+                  <input type="date" formControlName="birthday">
+                </div>
+                <span class="error-text" *ngIf="clientForm.get('birthday')?.invalid && clientForm.get('birthday')?.touched">
+                  Requerido
+                </span>
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn-secondary" (click)="closePanel()">
+                Cancelar
+              </button>
+              <button type="submit" class="btn-primary" [disabled]="formLoading">
+                <div class="btn-loader" *ngIf="formLoading"></div>
+                <i class="ti ti-device-floppy"></i>
+                Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
